@@ -3,10 +3,9 @@
 export const siteConfig = {
   name: "Cove",
   tagline: "Everyday goods, carefully made.",
-  description:
-    "Cove is a real storefront wired to Product OS — live feature flags, checkout signals, and customer voice land in the control plane.",
+  description: "Everyday goods for home and work — carefully made, shipped fast.",
 
-  announcement: "Free shipping over $75. Checkout reads live flags from Product OS.",
+  announcement: "Free shipping on orders over $75.",
 
   url: process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000",
 

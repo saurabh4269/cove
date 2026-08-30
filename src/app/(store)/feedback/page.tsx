@@ -26,10 +26,10 @@ export default function FeedbackPage() {
           meta: { page: "feedback" },
         }),
       })
-      toast.success("Sent to Product OS — a room will pick it up.")
+      toast.success("Thanks — we got your message.")
       setText("")
     } catch {
-      toast.error("Could not reach Product OS")
+      toast.error("Something went wrong. Please try again.")
     } finally {
       setBusy(false)
     }
@@ -44,23 +44,23 @@ export default function FeedbackPage() {
       </p>
       <h1 className="mt-4 text-3xl font-bold tracking-tight">Tell us what happened</h1>
       <p className="mt-2 text-muted-foreground">
-        Feedback posts as customer voice into Product OS rooms — not a fake form.
+        Orders, shipping, or checkout — we read every note.
       </p>
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle className="text-lg">Voice</CardTitle>
+          <CardTitle className="text-lg">Your message</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={send} className="space-y-4">
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Checkout hung… want Apple Pay… shipping date unclear…"
+              placeholder="Checkout got stuck… package arrived late… wish you had Apple Pay…"
               rows={5}
               required
             />
             <Button type="submit" disabled={busy || !text.trim()}>
-              {busy ? "Sending…" : "Send to Product OS"}
+              {busy ? "Sending…" : "Send feedback"}
             </Button>
           </form>
         </CardContent>

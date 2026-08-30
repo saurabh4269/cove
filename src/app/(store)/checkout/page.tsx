@@ -16,6 +16,30 @@ import { toast } from "sonner"
 import { siteConfig } from "@/lib/config"
 import type { Order } from "@/types"
 
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "")
+}
+
+function formatCardNumber(value: string) {
+  const digits = onlyDigits(value).slice(0, 16)
+  return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim()
+}
+
+function formatExpiry(value: string) {
+  const digits = onlyDigits(value).slice(0, 4)
+  if (digits.length <= 2) return digits
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`
+}
+
+function deliveryWindowLabel() {
+  const start = new Date()
+  start.setDate(start.getDate() + 2)
+  const end = new Date()
+  end.setDate(end.getDate() + 4)
+  const fmt = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" })
+  return `${fmt.format(start)} – ${fmt.format(end)}`
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const items = useCartStore((s) => s.items)
@@ -37,7 +61,14 @@ export default function CheckoutPage() {
     country: "US",
   })
 
-  const [sdk, setSdk] = useState("…")
+  const [pay, setPay] = useState({
+    name: "",
+    number: "",
+    expiry: "",
+    cvc: "",
+  })
+
+  const [sdk, setSdk] = useState("4.3.0")
   const [hung, setHung] = useState(false)
   const [showDelivery, setShowDelivery] = useState(false)
 
@@ -84,6 +115,34 @@ export default function CheckoutPage() {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
   }
 
+  function handlePayChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target
+    if (name === "number") {
+      setPay((p) => ({ ...p, number: formatCardNumber(value) }))
+      return
+    }
+    if (name === "expiry") {
+      setPay((p) => ({ ...p, expiry: formatExpiry(value) }))
+      return
+    }
+    if (name === "cvc") {
+      setPay((p) => ({ ...p, cvc: onlyDigits(value).slice(0, 4) }))
+      return
+    }
+    setPay((p) => ({ ...p, [name]: value }))
+  }
+
+  function cardLooksValid() {
+    const digits = onlyDigits(pay.number)
+    const exp = onlyDigits(pay.expiry)
+    return (
+      pay.name.trim().length >= 2 &&
+      digits.length >= 15 &&
+      exp.length === 4 &&
+      pay.cvc.length >= 3
+    )
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
@@ -92,10 +151,16 @@ export default function CheckoutPage() {
       return
     }
 
+    if (!cardLooksValid()) {
+      toast.error("Please check your card details")
+      return
+    }
+
     setLoading(true)
 
-    // Live flags from Product OS — SDK 4.3 path can hang (Type A demo).
+    // Flag-driven authorize hang (invisible to shoppers; signal still goes to Product OS).
     if (hung) {
+      await new Promise((r) => setTimeout(r, 2200))
       void fetch("/api/loop/ingest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -111,11 +176,10 @@ export default function CheckoutPage() {
         }),
       })
       setLoading(false)
-      toast.error(`Payment hung on SDK ${sdk}. Product OS opened a room.`)
+      toast.error("Payment authorization timed out. Please try again in a moment.")
       return
     }
 
-    // Create order using demo checkout
     const shipping = subtotal >= siteConfig.freeShippingThreshold ? 0 : 599
     const tax = Math.round(subtotal * siteConfig.taxRate)
     const total = subtotal + shipping + tax
@@ -177,7 +241,7 @@ export default function CheckoutPage() {
         dimensions: { sdk, orderId },
       }),
     })
-    toast.success("Order placed successfully!")
+    toast.success("Order placed")
     router.push(`/checkout/success?order_id=${orderId}`)
   }
 
@@ -186,12 +250,10 @@ export default function CheckoutPage() {
       <h1 className="text-3xl font-bold tracking-tight">Checkout</h1>
 
       <form onSubmit={handleSubmit} className="mt-8 grid gap-8 lg:grid-cols-5">
-        {/* Form */}
         <div className="space-y-8 lg:col-span-3">
-          {/* Contact */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Contact Information</CardTitle>
+              <CardTitle className="text-lg">Contact</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -200,6 +262,7 @@ export default function CheckoutPage() {
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   value={form.email}
                   onChange={handleChange}
                   placeholder="you@example.com"
@@ -209,72 +272,154 @@ export default function CheckoutPage() {
             </CardContent>
           </Card>
 
-          {/* Shipping */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Shipping Address</CardTitle>
+              <CardTitle className="text-lg">Shipping</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First name</Label>
-                  <Input id="firstName" name="firstName" value={form.firstName} onChange={handleChange} required />
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    autoComplete="given-name"
+                    value={form.firstName}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Last name</Label>
-                  <Input id="lastName" name="lastName" value={form.lastName} onChange={handleChange} required />
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    autoComplete="family-name"
+                    value={form.lastName}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="line1">Address</Label>
-                <Input id="line1" name="line1" value={form.line1} onChange={handleChange} required />
+                <Input
+                  id="line1"
+                  name="line1"
+                  autoComplete="address-line1"
+                  value={form.line1}
+                  onChange={handleChange}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="line2">Apartment, suite, etc. (optional)</Label>
-                <Input id="line2" name="line2" value={form.line2} onChange={handleChange} />
+                <Input
+                  id="line2"
+                  name="line2"
+                  autoComplete="address-line2"
+                  value={form.line2}
+                  onChange={handleChange}
+                />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
-                  <Input id="city" name="city" value={form.city} onChange={handleChange} required />
+                  <Input id="city" name="city" autoComplete="address-level2" value={form.city} onChange={handleChange} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="state">State</Label>
-                  <Input id="state" name="state" value={form.state} onChange={handleChange} required />
+                  <Input id="state" name="state" autoComplete="address-level1" value={form.state} onChange={handleChange} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="postalCode">ZIP code</Label>
-                  <Input id="postalCode" name="postalCode" value={form.postalCode} onChange={handleChange} required />
+                  <Label htmlFor="postalCode">ZIP</Label>
+                  <Input
+                    id="postalCode"
+                    name="postalCode"
+                    autoComplete="postal-code"
+                    value={form.postalCode}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
               </div>
+              {showDelivery ? (
+                <p className="text-sm text-muted-foreground">Estimated delivery {deliveryWindowLabel()}.</p>
+              ) : null}
             </CardContent>
           </Card>
 
-          {/* Payment — live Product OS flags */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Payment</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Pay SDK <span className="font-medium text-foreground">{sdk}</span>
-                {hung ? " · this build can hang at authorize" : " · ready"}
-              </p>
-              {showDelivery ? (
-                <p className="text-sm text-muted-foreground">Estimated delivery shown earlier (flag on).</p>
-              ) : null}
-              <p className="text-sm text-muted-foreground">
-                Demo checkout — no card charge. Flags come from Product OS.
-              </p>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2 text-xs text-muted-foreground">
+                <span className="rounded border px-2 py-1">Visa</span>
+                <span className="rounded border px-2 py-1">Mastercard</span>
+                <span className="rounded border px-2 py-1">Amex</span>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cardName">Name on card</Label>
+                <Input
+                  id="cardName"
+                  name="name"
+                  autoComplete="cc-name"
+                  value={pay.name}
+                  onChange={handlePayChange}
+                  placeholder="Jane Doe"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cardNumber">Card number</Label>
+                <Input
+                  id="cardNumber"
+                  name="number"
+                  inputMode="numeric"
+                  autoComplete="cc-number"
+                  value={pay.number}
+                  onChange={handlePayChange}
+                  placeholder="4242 4242 4242 4242"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cardExpiry">Expiry</Label>
+                  <Input
+                    id="cardExpiry"
+                    name="expiry"
+                    inputMode="numeric"
+                    autoComplete="cc-exp"
+                    value={pay.expiry}
+                    onChange={handlePayChange}
+                    placeholder="MM/YY"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cardCvc">CVC</Label>
+                  <Input
+                    id="cardCvc"
+                    name="cvc"
+                    inputMode="numeric"
+                    autoComplete="cc-csc"
+                    value={pay.cvc}
+                    onChange={handlePayChange}
+                    placeholder="123"
+                    required
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Order Summary */}
         <div className="lg:col-span-2">
           <Card className="sticky top-24">
             <CardHeader>
-              <CardTitle className="text-lg">Order Summary</CardTitle>
+              <CardTitle className="text-lg">Order summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {items.map((item) => (
@@ -288,7 +433,7 @@ export default function CheckoutPage() {
               <Separator />
               <CartSummary subtotal={subtotal} />
               <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                {loading ? "Processing..." : "Place Order"}
+                {loading ? "Authorizing…" : "Pay now"}
               </Button>
             </CardContent>
           </Card>
