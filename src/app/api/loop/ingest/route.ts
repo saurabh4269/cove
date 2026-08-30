@@ -10,6 +10,7 @@ export async function POST(req: Request) {
     await postVoice({
       text: body.text || body.message || "",
       sentiment: body.sentiment || "mixed",
+      phone: body.phone || (body.meta as { phone?: string } | undefined)?.phone || "",
       source: "cove.feedback",
       meta: body.meta || {},
     })

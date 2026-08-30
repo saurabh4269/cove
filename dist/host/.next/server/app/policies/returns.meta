@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(store)/layout,_N_T_/(store)/policies/layout,_N_T_/(store)/policies/returns/layout,_N_T_/(store)/policies/returns/page,_N_T_/policies/returns"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KHN0b3JlKQ/policies/returns/__PAGE__",
+    "/!KHN0b3JlKQ/policies/returns",
+    "/!KHN0b3JlKQ/policies",
+    "/!KHN0b3JlKQ",
+    "/_index",
+    "/_head"
+  ]
+}

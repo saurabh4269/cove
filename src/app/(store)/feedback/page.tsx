@@ -3,12 +3,15 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 
 export default function FeedbackPage() {
   const [text, setText] = useState("")
+  const [phone, setPhone] = useState("")
   const [busy, setBusy] = useState(false)
 
   async function send(e: React.FormEvent) {
@@ -23,7 +26,8 @@ export default function FeedbackPage() {
           kind: "voice",
           text: text.trim(),
           sentiment: "mixed",
-          meta: { page: "feedback" },
+          phone: phone.trim() || undefined,
+          meta: { page: "feedback", phone: phone.trim() || undefined },
         }),
       })
       toast.success("Thanks — we got your message.")
@@ -44,7 +48,7 @@ export default function FeedbackPage() {
       </p>
       <h1 className="mt-4 text-3xl font-bold tracking-tight">Tell us what happened</h1>
       <p className="mt-2 text-muted-foreground">
-        Orders, shipping, or checkout — we read every note.
+        Orders, shipping, or checkout — we read every note. Leave a number if you want a callback.
       </p>
       <Card className="mt-8">
         <CardHeader>
@@ -59,6 +63,18 @@ export default function FeedbackPage() {
               rows={5}
               required
             />
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone (optional)</Label>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+1 555 0100"
+              />
+            </div>
             <Button type="submit" disabled={busy || !text.trim()}>
               {busy ? "Sending…" : "Send feedback"}
             </Button>

@@ -1,0 +1,3 @@
+module.exports=[38947,a=>{"use strict";var b=a.i(87924),c=a.i(18697);a.s(["default",0,function({reset:a}){return(0,b.jsxs)("div",{className:"flex min-h-[60vh] flex-col items-center justify-center px-4 text-center",children:[(0,b.jsx)("p",{className:"text-sm font-medium text-muted-foreground",children:"Something went wrong"}),(0,b.jsx)("h1",{className:"mt-2 text-3xl font-bold tracking-tight",children:"We couldn't load this page"}),(0,b.jsx)("p",{className:"mt-4 text-muted-foreground",children:"Please try again. If the problem persists, contact support."}),(0,b.jsx)(c.Button,{onClick:a,className:"mt-8",children:"Try Again"})]})}])}];
+
+//# sourceMappingURL=src_app_%28store%29_error_tsx_11.hu~9._.js.map
