@@ -21,7 +21,8 @@ export function sdkVersion(flags: LoopFlags): string {
 
 export function checkoutHung(flags: LoopFlags): boolean {
   // Fixture energy: SDK 4.3 path can hang checkout (Type A). Flip off via OS approve.
-  return flags.pay_sdk_4_3 === "on" || flags.pay_sdk === "4.3.0"
+  // Rollback path: only hang when explicitly forced (demo regression flag)
+  return flags.pay_sdk_4_3 === "on" && flags.pay_sdk !== "4.2.1"
 }
 
 export async function liveFlags(): Promise<LoopFlags> {
