@@ -52,19 +52,34 @@ export async function liveFlags(): Promise<LoopFlags> {
   }
 }
 
-export async function postSignal(payload: Record<string, unknown>): Promise<void> {
-  if (!OS_URL || !TOKEN) return
+export async function postSignal(payload: Record<string, unknown>): Promise<{ ok: boolean }> {
+  if (!OS_URL || !TOKEN) return { ok: false }
+  const magnitude =
+    typeof payload.magnitude === "number"
+      ? payload.magnitude
+      : typeof payload.delta === "number"
+        ? payload.delta
+        : -0.14
+  const baseline = typeof payload.baseline === "number" ? payload.baseline : 0.72
+  const note = String(payload.note || payload.title || payload.message || "").slice(0, 500)
   try {
-    await fetch(`${OS_URL}/api/t/${TENANT}/signals`, {
+    const res = await fetch(`${OS_URL}/api/t/${TENANT}/signals`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        metric: payload.metric || "checkout_conversion",
+        magnitude,
+        baseline,
+        source: payload.source || "cove",
+        note,
+      }),
     })
+    return { ok: res.ok }
   } catch {
-    /* best-effort */
+    return { ok: false }
   }
 }
 

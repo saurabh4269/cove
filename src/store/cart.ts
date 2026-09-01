@@ -2,6 +2,7 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import { events as analytics } from "@/lib/analytics"
 import type { CartItem, ProductImage } from "@/types"
 
 interface CartState {
@@ -70,6 +71,13 @@ export const useCartStore = create<CartState>()(
             quantity,
             lineTotal: item.price * quantity,
           }
+
+          analytics.addToCart({
+            id: item.productId,
+            name: item.name,
+            price: item.price / 100,
+            quantity,
+          })
 
           return { items: [...state.items, newItem] }
         })

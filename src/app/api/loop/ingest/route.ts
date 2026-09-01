@@ -15,15 +15,22 @@ export async function POST(req: Request) {
       meta: body.meta || {},
     })
   } else {
-    await postSignal({
+    const delta = typeof body.delta === "number" ? body.delta : undefined
+    const out = await postSignal({
       source: body.source || "cove",
       polarity: body.polarity || "negative",
       domain: body.domain || "funnel",
-      metric: body.metric || "checkout",
-      delta: body.delta,
+      metric: body.metric || "checkout_conversion",
+      delta,
+      magnitude: body.magnitude,
+      baseline: body.baseline,
       title: body.title,
+      note: body.note,
       dimensions: body.dimensions || {},
     })
+    if (!out.ok) {
+      return NextResponse.json({ ok: false, detail: "Product OS unreachable" }, { status: 502 })
+    }
   }
   return NextResponse.json({ ok: true })
 }

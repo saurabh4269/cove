@@ -27,6 +27,7 @@ import { QuantitySelector } from "@/components/products/quantity-selector"
 import { ProductGrid } from "@/components/products/product-grid"
 import { formatPrice } from "@/lib/utils"
 import { breadcrumbJsonLd } from "@/lib/structured-data"
+import { events as analytics } from "@/lib/analytics"
 import type { Product, Brand, Category } from "@/types"
 
 interface ProductDetailViewProps {
@@ -56,7 +57,17 @@ export function ProductDetailView({
   const addRecentlyViewed = useRecentlyViewedStore((s) => s.addItem)
 
   const [mounted, setMounted] = useState(false)
+  const selectedVariant = product.variants.find((v) => v.id === selectedVariantId)
+
   useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    if (!mounted || !selectedVariant) return
+    analytics.viewItem({
+      id: product.id,
+      name: product.name,
+      price: selectedVariant.price / 100,
+    })
+  }, [mounted, product.id, product.name, selectedVariant])
   const isWishlisted = mounted && wishlistItems.some((i) => i.productId === product.id)
 
   // Track recently viewed
@@ -71,9 +82,6 @@ export function ProductDetailView({
     })
   }, [product.id])
 
-  const selectedVariant = product.variants.find(
-    (v) => v.id === selectedVariantId
-  )
   if (!selectedVariant) return null
 
   const isOnSale =
@@ -92,6 +100,12 @@ export function ProductDetailView({
       image: product.images[0] ?? { url: "", alt: product.name },
       slug: product.slug,
       price: selectedVariant!.price,
+      quantity,
+    })
+    analytics.addToCart({
+      id: product.id,
+      name: product.name,
+      price: selectedVariant!.price / 100,
       quantity,
     })
     openCart()

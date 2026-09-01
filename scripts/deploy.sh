@@ -43,8 +43,8 @@ OS_URL="${LOOP_OS_URL:-https://loop-5uy6fkd7bq-uc.a.run.app}"
 TENANT_ID="${LOOP_TENANT_ID:-acme}"
 TOKEN="${LOOP_TENANT_TOKEN:-}"
 if [[ -z "$TOKEN" ]]; then
-  TOKEN="$(gcloud run services describe northstar --project "${PROJECT}" --region "${REGION}" --format=json 2>/dev/null \
-    | python3 -c 'import json,sys; d=json.load(sys.stdin); env=d["spec"]["template"]["spec"]["containers"][0].get("env") or []; print(next((e.get("value") or "") for e in env if e.get("name")=="LOOP_TENANT_TOKEN"), "")' \
+  TOKEN="$(gcloud run services describe loop --project "${PROJECT}" --region "${REGION}" --format=json 2>/dev/null \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin); env=d["spec"]["template"]["spec"]["containers"][0].get("env") or []; print(next((e.get("value") or "") for e in env if e.get("name")=="LOOP_TENANT_BOOTSTRAP_TOKEN"), "")' \
     || true)"
 fi
 if [[ -z "$TOKEN" ]]; then
@@ -53,6 +53,9 @@ if [[ -z "$TOKEN" ]]; then
 fi
 
 ENV_VARS="GOOGLE_CLOUD_PROJECT=${PROJECT},LOOP_OS_URL=${OS_URL},LOOP_TENANT_ID=${TENANT_ID},LOOP_TENANT_TOKEN=${TOKEN},NODE_ENV=production,HOSTNAME=0.0.0.0"
+if [[ -n "${NEXT_PUBLIC_GA_MEASUREMENT_ID:-}" ]]; then
+  ENV_VARS="${ENV_VARS},NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}"
+fi
 
 gcloud run deploy "${SERVICE}" \
   --image node:22-bookworm-slim \

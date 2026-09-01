@@ -15,6 +15,7 @@ import { formatPrice } from "@/lib/utils"
 import { toast } from "sonner"
 import { siteConfig } from "@/lib/config"
 import type { Order } from "@/types"
+import { events as analytics } from "@/lib/analytics"
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "")
@@ -40,6 +41,27 @@ function deliveryWindowLabel() {
   return `${fmt.format(start)} – ${fmt.format(end)}`
 }
 
+/** Pre-filled shopper for faster checkout repro during incidents. */
+const CHECKOUT_PREFILL = {
+  form: {
+    email: "alex.chen@cove.shop",
+    firstName: "Alex",
+    lastName: "Chen",
+    line1: "742 Evergreen Terrace",
+    line2: "Apt 4B",
+    city: "San Francisco",
+    state: "CA",
+    postalCode: "94107",
+    country: "US",
+  },
+  pay: {
+    name: "Alex Chen",
+    number: "4242 4242 4242 4242",
+    expiry: "12/28",
+    cvc: "123",
+  },
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const items = useCartStore((s) => s.items)
@@ -49,24 +71,9 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const [form, setForm] = useState({
-    email: "",
-    firstName: "",
-    lastName: "",
-    line1: "",
-    line2: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "US",
-  })
+  const [form, setForm] = useState({ ...CHECKOUT_PREFILL.form })
 
-  const [pay, setPay] = useState({
-    name: "",
-    number: "",
-    expiry: "",
-    cvc: "",
-  })
+  const [pay, setPay] = useState({ ...CHECKOUT_PREFILL.pay })
 
   const [sdk, setSdk] = useState("4.3.0")
   const [hung, setHung] = useState(false)
@@ -84,6 +91,12 @@ export default function CheckoutPage() {
       })
       .catch(() => undefined)
   }, [])
+
+  useEffect(() => {
+    if (!mounted || items.length === 0) return
+    const subtotal = getSubtotal()
+    analytics.beginCheckout(subtotal, items.length)
+  }, [mounted, items.length, getSubtotal])
 
   if (!mounted) {
     return (
@@ -157,6 +170,7 @@ export default function CheckoutPage() {
     }
 
     setLoading(true)
+    analytics.addPaymentInfo(subtotal)
 
     // Flag-driven authorize hang (invisible to shoppers; signal still goes to Product OS).
     if (hung) {
@@ -171,6 +185,7 @@ export default function CheckoutPage() {
           domain: "technical",
           metric: "checkout_conversion",
           delta: -0.22,
+          baseline: 0.72,
           title: "Checkout hung on payment SDK",
           dimensions: { sdk, flow: "checkout", browser: "Safari", error: "3ds_hang" },
         }),
@@ -228,6 +243,7 @@ export default function CheckoutPage() {
 
     addOrder(order)
     clearCart()
+    analytics.purchase(orderId, total)
     void fetch("/api/loop/ingest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
