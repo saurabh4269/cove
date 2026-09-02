@@ -5,36 +5,36 @@ import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { siteConfig } from "@/lib/config"
+import { getRequestSiteUrl } from "@/lib/site-url"
 import { formatPrice } from "@/lib/utils"
 import { ProductGrid } from "@/components/products/product-grid"
 import { NewsletterForm } from "@/components/layout/newsletter-form"
 import { PLACEHOLDER_IMAGE } from "@/lib/constants"
 import { productRepository, categoryRepository } from "@/lib/repositories"
 
-export const metadata: Metadata = {
-  title: "Next.js Ecommerce Starter — Free Open-Source Template | Epic Design Labs",
-  description:
-    "A free, production-ready Next.js ecommerce starter built with Tailwind CSS and shadcn/ui. Includes cart, checkout, search, auth, wishlist, i18n, SEO, and accessibility. Open source on GitHub.",
-  alternates: { canonical: "/" },
-  openGraph: {
-    title: "Next.js Ecommerce Starter — Free Open-Source Template",
-    description:
-      "A free, production-ready Next.js ecommerce starter built with Tailwind CSS and shadcn/ui. Open source on GitHub.",
-    type: "website",
-    url: siteConfig.url,
-  },
-  keywords: [
-    "nextjs ecommerce starter",
-    "next.js ecommerce template",
-    "nextjs store template",
-    "react ecommerce starter",
-    "tailwind ecommerce template",
-    "shadcn ecommerce",
-    "free ecommerce template",
-    "open source ecommerce",
-    "nextjs shopping cart",
-    "ecommerce starter kit",
-  ],
+export async function generateMetadata(): Promise<Metadata> {
+  const siteUrl = await getRequestSiteUrl()
+  const title = `${siteConfig.name} — ${siteConfig.tagline}`
+
+  return {
+    title,
+    description: siteConfig.description,
+    alternates: { canonical: siteUrl },
+    openGraph: {
+      title,
+      description: siteConfig.description,
+      type: "website",
+      url: siteUrl,
+      siteName: siteConfig.name,
+    },
+    keywords: [
+      "cove shop",
+      "everyday goods",
+      "home essentials",
+      "online store",
+      "ecommerce",
+    ],
+  }
 }
 
 export default async function HomePage() {

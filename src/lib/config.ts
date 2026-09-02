@@ -7,7 +7,7 @@ export const siteConfig = {
 
   announcement: "Free shipping on orders over $75.",
 
-  url: process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000",
+  url: process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") || "http://localhost:3000",
 
   contact: {
     email: "hello@cove.example",
