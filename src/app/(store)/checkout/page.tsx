@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { siteConfig } from "@/lib/config"
 import type { Order } from "@/types"
 import { events as analytics } from "@/lib/analytics"
+import { DEMO_CHECKOUT_LINE_ITEM } from "@/lib/cart/demo-line-item"
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "")
@@ -65,6 +66,7 @@ const CHECKOUT_PREFILL = {
 export default function CheckoutPage() {
   const router = useRouter()
   const items = useCartStore((s) => s.items)
+  const addItem = useCartStore((s) => s.addItem)
   const getSubtotal = useCartStore((s) => s.getSubtotal)
   const clearCart = useCartStore((s) => s.clearCart)
   const addOrder = useOrdersStore((s) => s.addOrder)
@@ -77,6 +79,7 @@ export default function CheckoutPage() {
 
   const [sdk, setSdk] = useState("4.3.0")
   const [hung, setHung] = useState(false)
+  const [flagsLoaded, setFlagsLoaded] = useState(false)
   const [showDelivery, setShowDelivery] = useState(false)
 
   useEffect(() => setMounted(true), [])
@@ -90,7 +93,13 @@ export default function CheckoutPage() {
         setShowDelivery(d.flags?.show_delivery_date_earlier === "on")
       })
       .catch(() => undefined)
+      .finally(() => setFlagsLoaded(true))
   }, [])
+
+  useEffect(() => {
+    if (!mounted || !flagsLoaded || !hung || items.length > 0) return
+    addItem(DEMO_CHECKOUT_LINE_ITEM)
+  }, [mounted, flagsLoaded, hung, items.length, addItem])
 
   useEffect(() => {
     if (!mounted || items.length === 0) return
@@ -98,7 +107,9 @@ export default function CheckoutPage() {
     analytics.beginCheckout(subtotal, items.length)
   }, [mounted, items.length, getSubtotal])
 
-  if (!mounted) {
+  const seedingDemoCart = hung && flagsLoaded && items.length === 0
+
+  if (!mounted || !flagsLoaded || seedingDemoCart) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight">Checkout</h1>
