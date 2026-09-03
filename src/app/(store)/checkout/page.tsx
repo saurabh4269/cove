@@ -185,7 +185,8 @@ export default function CheckoutPage() {
 
     // Flag-driven authorize hang (invisible to shoppers; signal still goes to Product OS).
     if (hung) {
-      await new Promise((r) => setTimeout(r, 2200))
+      // Product OS: Safari 3DS — fail fast instead of hanging shoppers
+      await new Promise((r) => setTimeout(r, 800))
       void fetch("/api/loop/ingest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
